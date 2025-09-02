@@ -19,6 +19,8 @@ export interface Client {
 
 export type CandleClientOptions = {
   autoInit?: boolean;
+  queueSizeLimit?: number;
+  queueTimeLimit?: number;
 };
 
 export type AdapterState = {
@@ -32,18 +34,22 @@ export type QueueItem<T extends string = string> =
       kind: "track";
       name: string;
       properties?: EventProperties;
+      timestamp: number;
     }
   | {
       kind: "identify";
       userId: string;
       properties?: EventProperties;
+      timestamp: number;
     }
   | {
       kind: "group";
       group: string;
       type: T;
       properties?: EventProperties;
+      timestamp: number;
     }
   | {
       kind: "reset";
+      timestamp: number;
     };

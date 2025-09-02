@@ -12,11 +12,16 @@ export class CandleClient implements Client {
   private mounted = false;
   private queue: QueueItem[] = [];
   private ready = false;
+  private options: Required<CandleClientOptions>;
 
-  constructor(
-    private adapters: Adapter[],
-    private options: CandleClientOptions = { autoInit: true }
-  ) {
+  constructor(private adapters: Adapter[], options: CandleClientOptions = {}) {
+    this.options = {
+      autoInit: true,
+      queueSizeLimit: 100,
+      queueTimeLimit: 60000,
+      ...options,
+    };
+
     this.adapters.forEach((adapter) => {
       this.adaptersStates[adapter.id] = {
         status: "pending",
@@ -64,6 +69,7 @@ export class CandleClient implements Client {
     );
 
     this.ready = hasAnyWorkingAdapter;
+    this.cleanExpiredQueueItems();
     this.queue.forEach((item) => {
       switch (item.kind) {
         case "track":
@@ -86,7 +92,12 @@ export class CandleClient implements Client {
 
   track(name: string, properties?: EventProperties) {
     if (!this.ready) {
-      this.queue.push({ kind: "track", name, properties });
+      this.addToQueue({
+        kind: "track",
+        name,
+        properties,
+        timestamp: Date.now(),
+      });
       return;
     }
 
@@ -97,7 +108,12 @@ export class CandleClient implements Client {
 
   identify(userId: string, properties?: EventProperties) {
     if (!this.ready) {
-      this.queue.push({ kind: "identify", userId, properties });
+      this.addToQueue({
+        kind: "identify",
+        userId,
+        properties,
+        timestamp: Date.now(),
+      });
       return;
     }
 
@@ -112,7 +128,13 @@ export class CandleClient implements Client {
     properties?: EventProperties
   ) {
     if (!this.ready) {
-      this.queue.push({ kind: "group", group, type, properties });
+      this.addToQueue({
+        kind: "group",
+        group,
+        type,
+        properties,
+        timestamp: Date.now(),
+      });
       return;
     }
 
@@ -123,13 +145,30 @@ export class CandleClient implements Client {
 
   reset() {
     if (!this.ready) {
-      this.queue.push({ kind: "reset" });
+      this.addToQueue({ kind: "reset", timestamp: Date.now() });
       return;
     }
 
     this.getReadyAdapters().forEach((adapter) => {
       adapter.reset();
     });
+  }
+
+  private addToQueue(item: QueueItem) {
+    this.cleanExpiredQueueItems();
+
+    if (this.queue.length >= this.options.queueSizeLimit!) {
+      this.queue.shift();
+    }
+
+    this.queue.push(item);
+  }
+
+  private cleanExpiredQueueItems() {
+    const now = Date.now();
+    this.queue = this.queue.filter(
+      (item) => now - item.timestamp < this.options.queueTimeLimit!
+    );
   }
 
   private getReadyAdapters() {
