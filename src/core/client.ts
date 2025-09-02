@@ -1,5 +1,6 @@
 import {
   Adapter,
+  AdapterCapabilities,
   AdapterState,
   CandleClientOptions,
   Client,
@@ -13,6 +14,8 @@ export class CandleClient implements Client {
   private queue: QueueItem[] = [];
   private ready = false;
   private options: Required<CandleClientOptions>;
+  private lastCleanupTime = 0;
+  private cleanupThreshold = 10;
 
   constructor(private adapters: Adapter[], options: CandleClientOptions = {}) {
     this.options = {
@@ -101,7 +104,7 @@ export class CandleClient implements Client {
       return;
     }
 
-    this.getReadyAdapters().forEach((adapter) => {
+    this.getCapableAdapters("track").forEach((adapter) => {
       adapter.track(name, properties);
     });
   }
@@ -117,7 +120,7 @@ export class CandleClient implements Client {
       return;
     }
 
-    this.getReadyAdapters().forEach((adapter) => {
+    this.getCapableAdapters("identify").forEach((adapter) => {
       adapter.identify(userId, properties);
     });
   }
@@ -138,7 +141,7 @@ export class CandleClient implements Client {
       return;
     }
 
-    this.getReadyAdapters().forEach((adapter) => {
+    this.getCapableAdapters("group").forEach((adapter) => {
       adapter.group(group, type, properties);
     });
   }
@@ -149,13 +152,15 @@ export class CandleClient implements Client {
       return;
     }
 
-    this.getReadyAdapters().forEach((adapter) => {
+    this.getCapableAdapters("reset").forEach((adapter) => {
       adapter.reset();
     });
   }
 
   private addToQueue(item: QueueItem) {
-    this.cleanExpiredQueueItems();
+    if (this.shouldCleanup()) {
+      this.cleanExpiredQueueItems();
+    }
 
     if (this.queue.length >= this.options.queueSizeLimit!) {
       this.queue.shift();
@@ -164,16 +169,35 @@ export class CandleClient implements Client {
     this.queue.push(item);
   }
 
-  private cleanExpiredQueueItems() {
+  private shouldCleanup(): boolean {
     const now = Date.now();
-    this.queue = this.queue.filter(
-      (item) => now - item.timestamp < this.options.queueTimeLimit!
-    );
+    const timeSinceLastCleanup = now - this.lastCleanupTime;
+    const queueSizeThresholdMet = this.queue.length >= this.cleanupThreshold;
+    const timeThresholdMet = timeSinceLastCleanup >= 5000;
+
+    return queueSizeThresholdMet || timeThresholdMet;
   }
 
-  private getReadyAdapters() {
+  private cleanExpiredQueueItems() {
+    const now = Date.now();
+    const timeLimit = this.options.queueTimeLimit!;
+
+    for (let i = this.queue.length - 1; i >= 0; i--) {
+      if (now - this.queue[i].timestamp >= timeLimit) {
+        this.queue.splice(i, 1);
+      }
+    }
+
+    this.lastCleanupTime = now;
+  }
+
+  private getCapableAdapters(capability: AdapterCapabilities) {
     return Object.values(this.adaptersStates)
-      .filter((adapter) => adapter.status === "initialized")
-      .map((adapter) => adapter.adapter);
+      .filter(
+        (state) =>
+          state.status === "initialized" &&
+          state.adapter.capabilities.includes(capability)
+      )
+      .map((state) => state.adapter);
   }
 }
