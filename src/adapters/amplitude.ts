@@ -1,3 +1,5 @@
+// TODO: this import should be a type only import if we decide to use the cdn version so
+// we dont lose types
 import * as amplitude from "@amplitude/analytics-browser";
 
 import { Adapter, EventProperties } from "../types";
@@ -66,6 +68,11 @@ export function amplitudeAdapter(
     reset: () => {
       amplitude.reset();
     },
-    ready: true,
+    ready: () => {
+      // This is always true since we are using the sdk browser version.
+      // If we decide to rely on the cdn version, we need to check if the sdk is loaded
+      // in the browser.
+      return true;
+    },
   };
 }

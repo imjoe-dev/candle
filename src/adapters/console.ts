@@ -46,6 +46,9 @@ export function consoleAdapter(): Adapter {
     reset: () => {
       console.log("🔄 Reset");
     },
-    ready: true,
+    ready: () => {
+      // This is always true since we are using the console adapter.
+      return true;
+    },
   };
 }

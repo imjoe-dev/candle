@@ -10,7 +10,7 @@ export type AdapterCapabilities =
 export type Adapter = Readonly<{
   id: "amplitude" | "console";
   capabilities: readonly AdapterCapabilities[];
-  init: Promise<void> | (() => void);
+  init: () => Promise<void> | void;
   track: (name: string, properties?: EventProperties) => Promise<void> | void;
   identify: (
     userId: string,
@@ -23,5 +23,5 @@ export type Adapter = Readonly<{
   ) => Promise<void> | void;
   page?: (name: string, properties?: EventProperties) => Promise<void> | void;
   reset: () => Promise<void> | void;
-  ready: boolean;
+  ready: Promise<boolean> | (() => boolean);
 }>;
