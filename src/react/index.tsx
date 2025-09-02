@@ -8,15 +8,18 @@ type CandleProviderProps = React.PropsWithChildren<{
   client: CandleClient;
 }>;
 
-export const CandleProvider = ({ children, client }: CandleProviderProps) => {
+export function CandleProvider({
+  children,
+  client,
+}: CandleProviderProps): React.JSX.Element {
   return <Context.Provider value={client}>{children}</Context.Provider>;
-};
+}
 
-export const useCandle = () => {
+export function useCandle(): CandleClient {
   const client = useContext(Context);
   if (!client) {
     throw new Error("Candle client not found");
   }
 
   return client;
-};
+}

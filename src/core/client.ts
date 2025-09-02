@@ -37,7 +37,7 @@ export class CandleClient implements Client {
     }
   }
 
-  async init() {
+  async init(): Promise<void> {
     if (this.mounted) {
       return;
     }
@@ -93,7 +93,7 @@ export class CandleClient implements Client {
     this.queue = [];
   }
 
-  track(name: string, properties?: EventProperties) {
+  track(name: string, properties?: EventProperties): void {
     if (!this.ready) {
       this.addToQueue({
         kind: "track",
@@ -109,7 +109,7 @@ export class CandleClient implements Client {
     });
   }
 
-  identify(userId: string, properties?: EventProperties) {
+  identify(userId: string, properties?: EventProperties): void {
     if (!this.ready) {
       this.addToQueue({
         kind: "identify",
@@ -129,7 +129,7 @@ export class CandleClient implements Client {
     group: string,
     type: T,
     properties?: EventProperties
-  ) {
+  ): void {
     if (!this.ready) {
       this.addToQueue({
         kind: "group",
@@ -146,7 +146,7 @@ export class CandleClient implements Client {
     });
   }
 
-  reset() {
+  reset(): void {
     if (!this.ready) {
       this.addToQueue({ kind: "reset", timestamp: Date.now() });
       return;
@@ -157,7 +157,7 @@ export class CandleClient implements Client {
     });
   }
 
-  private addToQueue(item: QueueItem) {
+  private addToQueue(item: QueueItem): void {
     if (this.shouldCleanup()) {
       this.cleanExpiredQueueItems();
     }
@@ -178,7 +178,7 @@ export class CandleClient implements Client {
     return queueSizeThresholdMet || timeThresholdMet;
   }
 
-  private cleanExpiredQueueItems() {
+  private cleanExpiredQueueItems(): void {
     const now = Date.now();
     const timeLimit = this.options.queueTimeLimit!;
 
@@ -191,7 +191,7 @@ export class CandleClient implements Client {
     this.lastCleanupTime = now;
   }
 
-  private getCapableAdapters(capability: AdapterCapabilities) {
+  private getCapableAdapters(capability: AdapterCapabilities): Adapter[] {
     return Object.values(this.adaptersStates)
       .filter(
         (state) =>

@@ -1,7 +1,4 @@
-import { Adapter } from "./types/adapter";
-
-export interface Candle {}
-
-export interface CandleOptions {
-  adapter: Adapter;
-}
+export { CandleClient } from "./core/client";
+export { amplitudeAdapter } from "./adapters/amplitude";
+export { consoleAdapter } from "./adapters/console";
+export * from "./types";
